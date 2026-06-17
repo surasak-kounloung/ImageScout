@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ค้นหารูปภาพในเว็บไซต์ · Image Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="shortcut icon" href="/favicon.ico">
+<style>
+  /* ส่วนเสริมสำหรับฟังก์ชันจริง (พรีวิวภาพ / ผลลัพธ์ / สถานะ) */
+  .dropzone.has-img { min-height:auto; }
+  .results { margin-top:26px; }
+  .results .empty { text-align:center; color:var(--muted); padding:40px; background:var(--card); border:1px solid var(--line); border-radius:var(--r-lg); }
+  .results .err { color:#b91c1c; background:#fef2f2; border-color:#fecaca; }
+  .match .meta .dups { font-size:10.5px; color:var(--faint); margin-top:5px; }
+  .match .img { display:block; }
+  .match .meta .src { display:flex; align-items:flex-start; gap:5px; margin-top:7px; font-size:10.5px; color:var(--accent-strong); font-family:var(--font-mono); text-decoration:none; }
+  .match .meta .src svg { width:12px; height:12px; flex:none; margin-top:2px; }
+  .match .meta .src span { white-space:normal; overflow-wrap:anywhere; word-break:normal; }
+  .match .meta .src:hover { text-decoration:underline; }
+  .chip.warn { background:#fffbeb; border-color:#fde68a; color:var(--warn); }
+  /* อัปโหลดหลายภาพ (สูงสุด 12) */
+  .dz-thumbs { display:none; grid-template-columns:repeat(auto-fill, minmax(142px, 1fr)); gap:10px; width:100%; }
+  .dropzone.has-img .dz-thumbs { display:grid; }
+  .dz-thumbs .qt { position:relative; aspect-ratio:1; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:#fff; box-shadow:var(--sh-sm); }
+  .dz-thumbs .qt img { width:100%; height:100%; object-fit:cover; display:block; }
+  .dz-thumbs .qt .rm { position:absolute; top:4px; right:4px; display:flex; justify-content:center; align-items:center; width:20px; height:20px; padding:0; border-radius:50%; background:rgba(15,23,42,.62); color:#fff; border:none; cursor:pointer; font-size:11px; line-height:1; }
+  .dz-thumbs .qt .rm:hover { background:#b91c1c; }
+  .dz-thumbs .qt .nm { position:absolute; left:0; right:0; bottom:0; font-size:8.5px; padding:2px 4px; background:rgba(15,23,42,.5); color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-family:var(--font-mono); }
+  .dz-thumbs .add-tile { display:grid; place-items:center; aspect-ratio:1; border:1.5px dashed var(--line-2); border-radius:10px; cursor:pointer; color:var(--muted); font-size:24px; background:transparent; transition:.15s; }
+  .dz-thumbs .add-tile:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-50); }
+  /* thumbnail ภาพ query ที่ตรงกันบนการ์ดผลลัพธ์ */
+  .match .meta .qhits { display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-top:7px; }
+  .match .meta .qhits span { font-size:10px; color:var(--muted); }
+  .match .meta .qhits img { width:44px; height:44px; object-fit:cover; border-radius:6px; border:1px solid var(--line); }
+  .match .meta .qhits em { font-size:10px; color:var(--muted); font-style:normal; }
+  .res-thumbs { display:flex; gap:6px; flex-wrap:wrap; max-width:160px; }
+  .res-thumbs img { width:34px; height:34px; object-fit:cover; border-radius:8px; border:1px solid var(--line); }
+  /* การ์ด URL ที่ดึงไม่สำเร็จ */
+  .fail-card { border-color:#fecaca; background:#fffafa; }
+  .fail-list { display:flex; flex-direction:column; gap:6px; max-height:260px; overflow:auto; margin-top:4px;
+    border:1px solid var(--line); border-radius:10px; padding:8px; background:#fff; }
+  .fail-row { display:flex; align-items:center; gap:10px; padding:0 8px; border-radius:8px; }
+  .fail-row:nth-child(odd) { background:var(--bg); }
+  .fail-url { flex:1; min-width:0; font-family:var(--font-mono); font-size:11.5px; color:var(--accent-strong);
+    text-decoration:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .fail-url:hover { text-decoration:underline; }
+  .fail-reason { flex:none; max-width:45%; font-size:10.5px; color:#b91c1c; background:#fef2f2; border:1px solid #fecaca;
+    padding:2px 8px; border-radius:999px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  /* ปุ่มหยุดใน processing overlay */
+  .proc-actions { display:flex; justify-content:center; margin-top:18px; }
+  .btn-stop { display:inline-flex; align-items:center; gap:4px; padding:9px 22px; font-size:13px; font-weight:600;
+    color:#b91c1c; background:#fef2f2; border:1px solid #fecaca; border-radius:10px; cursor:pointer; transition:.15s; }
+  .btn-stop svg { width:22px; height:22px; }
+  .btn-stop:hover { background:#fee2e2; border-color:#fca5a5; }
+  .btn-stop:disabled { opacity:.55; cursor:not-allowed; }
+  /* แถบสถานะเซิร์ฟเวอร์ */
+  .top-pill.offline { background:rgba(248,113,113,.18); border-color:rgba(248,113,113,.45); }
+  .top-pill.offline .dot { background:#f87171; box-shadow:0 0 0 3px rgba(248,113,113,.3); animation:none; }
+  .top-pill.checking .dot { background:#fbbf24; box-shadow:0 0 0 3px rgba(251,191,36,.3); }
+  /* ===== Toast notification (แทน alert) ===== */
+  .toast-wrap { position:fixed; top:20px; right:20px; z-index:1000; display:flex; flex-direction:column;
+    gap:10px; max-width:min(380px, calc(100vw - 36px)); pointer-events:none; }
+  .toast { display:flex; align-items:flex-start; gap:11px; padding:13px 14px; position:relative; overflow:hidden;
+    background:var(--card); border:1px solid var(--line); border-left:3px solid var(--accent);
+    border-radius:12px; box-shadow:var(--sh-lg); pointer-events:auto;
+    transform:translateX(120%); opacity:0; transition:transform .34s cubic-bezier(.22,1,.36,1), opacity .34s; }
+  .toast.show { transform:translateX(0); opacity:1; }
+  .toast.hide { transform:translateX(120%); opacity:0; }
+  .toast .ic { flex:none; width:20px; height:20px; margin-top:1px; }
+  .toast .ic svg { width:100%; height:100%; display:block; }
+  .toast .body { flex:1; min-width:0; }
+  .toast .body strong { display:block; font-size:13px; font-weight:600; color:var(--text); margin-bottom:2px; }
+  .toast .body .msg { font-size:12px; color:var(--muted); line-height:1.5; overflow-wrap:anywhere; }
+  .toast .x { flex:none; margin:-2px -3px 0 0; padding:2px; border:none; background:none; cursor:pointer;
+    color:var(--faint); font-size:14px; line-height:1; border-radius:5px; transition:.15s; }
+  .toast .x:hover { color:var(--text); background:var(--bg); }
+  .toast .prog { position:absolute; left:0; bottom:0; height:2px; width:100%; transform-origin:left;
+    background:var(--accent); animation:toastProg linear forwards; }
+  @keyframes toastProg { from { transform:scaleX(1); } to { transform:scaleX(0); } }
+  .toast.warn    { border-left-color:var(--warn); }  .toast.warn .ic    { color:var(--warn); }  .toast.warn .prog    { background:var(--warn); }
+  .toast.error   { border-left-color:#dc2626; }      .toast.error .ic   { color:#dc2626; }      .toast.error .prog   { background:#dc2626; }
+  .toast.info    { border-left-color:var(--accent); }.toast.info .ic    { color:var(--accent); }.toast.info .prog    { background:var(--accent); }
+  .toast.success { border-left-color:var(--good); }  .toast.success .ic { color:var(--good); }  .toast.success .prog { background:var(--good); }
+  @media (prefers-reduced-motion: reduce) {
+    .toast { transition:opacity .2s; transform:none; } .toast.hide { transform:none; } .toast .prog { animation:none; }
+  }
+</style>
+<template id="__bundler_thumbnail" data-bg-color="#1d4ed8">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#1d4ed8"/>
+    <g fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="430" y="300" width="240" height="240" rx="40"/>
+      <path d="M470 470l55-58 42 40 40-44"/>
+      <circle cx="690" cy="500" r="78"/>
+      <path d="M748 558l46 46"/>
+    </g>
+  </svg>
+</template>
+</head>
+<body>
+<div class="page">
+
+  <!-- ===================== HERO ===================== -->
+  <header class="hero">
+    <div class="wrap">
+      <div class="topbar">
+        <div class="brand">
+          <span class="logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="13" height="13" rx="2.5"/>
+              <path d="M6.5 13l3-3.2 2.3 2.2 2.2-2.4"/>
+              <circle cx="16.5" cy="16.5" r="4"/>
+              <path d="M19.6 19.6L22 22"/>
+            </svg>
+          </span>
+          <span class="name">Image&nbsp;Finder<small>Visual search engine</small></span>
+        </div>
+        <span class="top-pill checking" id="serverPill"><span class="dot"></span> <span id="serverText">กำลังตรวจสอบเซิร์ฟเวอร์…</span></span>
+      </div>
+
+      <div class="hero-head">
+        <h1>ค้นหารูปภาพในเว็บไซต์</h1>
+        <p>อัปโหลดภาพ (สูงสุด 12 ภาพ) แล้วใส่ URL ของเว็บ — เลือกได้ว่าจะหา “ภาพย่อยในภาพใหญ่” หรือ “ภาพที่หน้าตาคล้ายกัน”</p>
+        <p class="en-sub">Upload up to 12 images and paste URLs — find a logo inside other images, or visually similar pictures.</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================== FORM CARD ===================== -->
+  <main class="wrap">
+    <section class="card">
+      <div class="card-pad">
+
+        <!-- mode -->
+        <div class="sec-label">
+          <span class="num">◎</span>
+          <h2>โหมดการค้นหา</h2>
+          <span class="en">Search mode</span>
+        </div>
+
+        <div class="modes">
+          <label class="mode active" data-mode="sub">
+            <span class="ic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="3"/>
+                <rect x="8" y="8" width="8" height="8" rx="1.5"/>
+                <path d="M12 5.5v1.5M12 17v1.5M5.5 12h1.5M17 12h1.5"/>
+              </svg>
+            </span>
+            <span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span>
+            <span class="t">หาภาพย่อยในภาพใหญ่ <span class="tag">SIFT</span></span>
+            <span class="d">ภาพที่อัปโหลดปรากฏ “อยู่ข้างใน” รูปอื่น — เหมาะกับโลโก้ / สินค้า<br><span style="color:var(--faint)">Find a sub-image within larger images</span></span>
+          </label>
+
+          <label class="mode" data-mode="similar">
+            <span class="ic">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="7" width="12" height="12" rx="2.5"/>
+                <rect x="9" y="3" width="12" height="12" rx="2.5"/>
+              </svg>
+            </span>
+            <span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span>
+            <span class="t">หาภาพที่คล้ายกัน <span class="tag">CLIP · FAISS</span></span>
+            <span class="d">รูปที่หน้าตา “คล้ายกันทั้งภาพ” โดยรวม<br><span style="color:var(--faint)">Find visually similar images</span></span>
+          </label>
+        </div>
+
+        <hr class="rule">
+
+        <!-- two columns -->
+        <div class="grid">
+          <!-- left : query image -->
+          <div>
+            <div class="field-label">
+              <span class="num" style="width:22px;height:22px;font-size:11px;display:grid;place-items:center;border-radius:6px;background:var(--accent-50);color:var(--accent-strong);font-family:var(--font-mono);font-weight:700;border:1px solid var(--accent-100)">1</span>
+              <span class="th">ภาพที่ต้องการค้นหา</span>
+              <span class="en">Query images</span>
+              <span class="opt" id="dzCount">0 / 12 ภาพ</span>
+            </div>
+            <div class="dropzone" id="dz">
+              <input type="file" id="file" accept="image/*" multiple hidden>
+              <div class="dz-default" id="dzDefault">
+                <span class="dz-ic">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 16V4M12 4l-4 4M12 4l4 4"/>
+                    <path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/>
+                  </svg>
+                </span>
+                <div>
+                  <div class="dz-t">คลิกเพื่อเลือกภาพ หรือลากไฟล์มาวาง</div>
+                  <div class="dz-d">เลือกได้หลายภาพพร้อมกัน · Click to upload or drag &amp; drop</div>
+                </div>
+                <div class="dz-formats">PNG · JPG · WEBP · สูงสุด 12 ภาพ ภาพละไม่เกิน 10MB</div>
+              </div>
+              <div class="dz-thumbs" id="dzThumbs"></div>
+            </div>
+          </div>
+
+          <!-- right : urls + options -->
+          <div>
+            <div class="field-label">
+              <span class="num" style="width:22px;height:22px;font-size:11px;display:grid;place-items:center;border-radius:6px;background:var(--accent-50);color:var(--accent-strong);font-family:var(--font-mono);font-weight:700;border:1px solid var(--accent-100)">2</span>
+              <span class="th">URL ของเว็บที่จะค้นหา</span>
+              <span class="en">บรรทัดละ 1 ลิงก์ · one per line</span>
+            </div>
+            <textarea class="ta" id="urls" spellcheck="false" placeholder="https://example.com/products&#10;https://example.com/promotions&#10;https://shop.example.com"></textarea>
+
+            <div class="stack">
+              <div class="field-label">
+                <span class="th">จำกัดขอบเขต (CSS selector)</span>
+                <span class="en">Scope</span>
+                <span class="opt">ไม่บังคับ · optional</span>
+              </div>
+              <input class="inp" id="scope" spellcheck="false" placeholder=".site-main, .entry-content">
+              <div class="help">ดึงเฉพาะรูปที่อยู่ใต้ element นี้ เช่น <code>.site-main</code> — เว้นว่าง = ทั้งหน้า</div>
+            </div>
+
+            <div class="stack">
+              <label class="chk" id="pw">
+                <span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span>
+                <span class="lbl">เปิด render ด้วยเบราว์เซอร์จริง (Playwright)
+                  <span class="en">สำหรับเว็บที่ใช้ JavaScript · React/Next.js, Vue.js, Nuxt.js, Angular, etc.</span>
+                </span>
+                <span class="ready">พร้อม</span>
+              </label>
+            </div>
+
+            <!-- advanced -->
+            <div class="adv" id="adv">
+              <div class="adv-head" id="advHead">
+                <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+                ปรับความแม่น / ความไว
+                <span class="en">Precision &amp; recall</span>
+              </div>
+              <div class="adv-body">
+                <div class="slider-row">
+                  <div class="slider-top">
+                    <span class="lab">จำนวน inlier ขั้นต่ำ <span class="en">min inliers</span></span>
+                    <span class="val" id="inlierVal">10</span>
+                  </div>
+                  <input type="range" id="inlier" min="4" max="40" step="1" value="10">
+                  <div class="slider-foot"><span class="end">น้อย = เจอง่ายแต่อาจผิด</span><span class="end">มาก = แม่นแต่อาจไม่เจอ</span></div>
+                </div>
+
+                <div class="slider-row">
+                  <div class="slider-top">
+                    <span class="lab">Ratio test <span class="en">match strictness</span></span>
+                    <span class="val" id="ratioVal">0.60</span>
+                  </div>
+                  <input type="range" id="ratio" min="0.3" max="0.9" step="0.05" value="0.6">
+                  <div class="slider-foot"><span class="end">ต่ำ = เข้มงวด แม่นขึ้น</span><span class="end">สูง = จับคู่มากขึ้น</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- footer -->
+      <div class="card-foot">
+        <div class="foot-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+          ระบบจะดาวน์โหลดรูปจากแต่ละ URL แล้วเทียบกับภาพของคุณ — ใช้เวลาตามจำนวนหน้า
+        </div>
+        <div class="actions">
+          <button class="btn btn-ghost" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 4v4h4"/></svg>
+            ล้างค่า
+          </button>
+          <button class="btn btn-primary" type="button" id="searchBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            ค้นหา
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ผลลัพธ์ (render หลังค้นหาเสร็จ) -->
+    <section class="results" id="results"></section>
+  </main>
+
+  <!-- ===================== PROCESSING OVERLAY ===================== -->
+  <div class="proc-overlay" id="proc">
+    <div class="proc-card">
+      <div class="proc-head">
+        <span class="proc-spin"></span>
+        <span class="proc-title" id="procTitle">กำลังดึงหน้าเว็บ (103 หน้า)…<span class="en" id="procEn">Fetching pages</span></span>
+        <span class="proc-timer" id="procTimer">0.0 วิ</span>
+      </div>
+
+      <div class="steps">
+        <div class="step active" data-step="0">
+          <span class="n"><span class="num">1</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span>
+          <span class="tx">ดึงหน้าเว็บ</span>
+        </div>
+        <div class="step" data-step="1">
+          <span class="n"><span class="num">2</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span>
+          <span class="tx">รวบรวมรูป</span>
+        </div>
+        <div class="step" data-step="2">
+          <span class="n"><span class="num">3</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span>
+          <span class="tx">วิเคราะห์ภาพ</span>
+        </div>
+        <div class="step" data-step="3">
+          <span class="n"><span class="num">4</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg></span>
+          <span class="tx">เสร็จสิ้น</span>
+        </div>
+      </div>
+
+      <div class="proc-track"><div class="proc-fill" id="procFill"></div></div>
+      <div class="proc-foot">
+        <span id="procDetail">กำลังเชื่อมต่อกับเว็บ…</span>
+        <span class="cur" id="procCount">0 / 103 หน้า</span>
+      </div>
+
+      <div class="proc-actions">
+        <button class="btn btn-stop" type="button" id="stopBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>
+          หยุดการทำงาน
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- กล่องแจ้งเตือน toast (เด้งมุมขวาบน แทน alert) -->
+<div class="toast-wrap" id="toastWrap" aria-live="polite" aria-atomic="false"></div>
+
+<script>
+  const $ = id => document.getElementById(id);
+
+  // ---------- toast notification (แทน alert) ----------
+  const TOAST_ICONS = {
+    warn:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+    error:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9l6 6"/></svg>',
+    info:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>',
+    success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>',
+  };
+  const TOAST_TITLES = { warn:'แจ้งเตือน', error:'เกิดข้อผิดพลาด', info:'ข้อมูล', success:'สำเร็จ' };
+  // toast(message, type) — type: 'warn' | 'error' | 'info' | 'success'
+  function toast(msg, type = 'warn', opts = {}) {
+    const dur = opts.duration ?? 4500;
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.setAttribute('role', type === 'error' ? 'alert' : 'status');
+    el.innerHTML =
+      `<span class="ic">${TOAST_ICONS[type] || TOAST_ICONS.info}</span>` +
+      `<div class="body"><strong>${esc(opts.title || TOAST_TITLES[type] || '')}</strong>` +
+      `<div class="msg">${esc(msg)}</div></div>` +
+      `<button class="x" type="button" aria-label="ปิด">✕</button>` +
+      `<span class="prog" style="animation-duration:${dur}ms"></span>`;
+    $('toastWrap').appendChild(el);
+    requestAnimationFrame(() => el.classList.add('show'));
+    let timer;
+    const close = () => {
+      clearTimeout(timer);
+      el.classList.add('hide');
+      el.addEventListener('transitionend', () => el.remove(), { once: true });
+      setTimeout(() => el.remove(), 500); // กันค้างถ้า transitionend ไม่ยิง
+    };
+    el.querySelector('.x').addEventListener('click', close);
+    timer = setTimeout(close, dur);
+    return close;
+  }
+
+  // ---------- mode toggle (data-mode: sub -> inside, similar -> similar) ----------
+  document.querySelectorAll('.mode').forEach(m => {
+    m.addEventListener('click', () => {
+      document.querySelectorAll('.mode').forEach(x => x.classList.remove('active'));
+      m.classList.add('active');
+    });
+  });
+  function currentMode() {
+    const el = document.querySelector('.mode.active');
+    return (el && el.dataset.mode === 'similar') ? 'similar' : 'inside';
+  }
+
+  // ---------- playwright toggle ----------
+  const pw = $('pw');
+  pw.addEventListener('click', e => { e.preventDefault(); pw.classList.toggle('on'); });
+
+  // ---------- advanced collapse + sliders ----------
+  const adv = $('adv');
+  $('advHead').addEventListener('click', () => adv.classList.toggle('open'));
+  //adv.classList.add('open');
+  function fill(el){ const p = (el.value - el.min) / (el.max - el.min) * 100; el.style.background = `linear-gradient(90deg, var(--accent) ${p}%, var(--line-2) ${p}%)`; }
+  const inlier = $('inlier'), ratio = $('ratio');
+  inlier.addEventListener('input', e => { $('inlierVal').textContent = e.target.value; fill(e.target); });
+  ratio.addEventListener('input', e => { $('ratioVal').textContent = (+e.target.value).toFixed(2); fill(e.target); });
+  fill(inlier); fill(ratio);
+
+  // ---------- file upload (หลายภาพ สูงสุด 12) ----------
+  const MAX_QUERY = 12;
+  const fileInput = $('file'), dz = $('dz');
+  let queryFiles = [];           // File[] ที่เลือกไว้
+  const thumbUrls = new Map();   // File -> object URL (กัน revoke/สร้างซ้ำ)
+
+  function thumbUrl(f) {
+    if (!thumbUrls.has(f)) thumbUrls.set(f, URL.createObjectURL(f));
+    return thumbUrls.get(f);
+  }
+  function addFiles(list) {
+    let rejected = false;
+    for (const f of list) {
+      if (!f.type.startsWith('image/')) continue;
+      if (queryFiles.length >= MAX_QUERY) { rejected = true; break; }
+      // กันไฟล์ซ้ำ (ชื่อ + ขนาดเดียวกัน)
+      if (queryFiles.some(x => x.name === f.name && x.size === f.size)) continue;
+      queryFiles.push(f);
+    }
+    if (rejected) toast(`เพิ่มภาพได้สูงสุด ${MAX_QUERY} ภาพ`, 'warn');
+    renderThumbs();
+  }
+  function removeFile(i) {
+    const [f] = queryFiles.splice(i, 1);
+    if (f && thumbUrls.has(f)) { URL.revokeObjectURL(thumbUrls.get(f)); thumbUrls.delete(f); }
+    renderThumbs();
+  }
+  function clearFiles() {
+    thumbUrls.forEach(u => URL.revokeObjectURL(u));
+    thumbUrls.clear(); queryFiles = [];
+    renderThumbs();
+  }
+  function renderThumbs() {
+    const wrap = $('dzThumbs');
+    $('dzCount').textContent = `${queryFiles.length} / ${MAX_QUERY} ภาพ`;
+    if (!queryFiles.length) {
+      dz.classList.remove('has-img'); $('dzDefault').style.display = '';
+      wrap.innerHTML = ''; return;
+    }
+    dz.classList.add('has-img'); $('dzDefault').style.display = 'none';
+    wrap.innerHTML = queryFiles.map((f, i) => `
+      <div class="qt" title="${esc(f.name)}">
+        <img src="${thumbUrl(f)}" alt="">
+        <button class="rm" type="button" data-i="${i}" title="ลบภาพนี้">✕</button>
+        <div class="nm">${esc(f.name)}</div>
+      </div>`).join('') +
+      (queryFiles.length < MAX_QUERY
+        ? `<button class="add-tile" type="button" title="เพิ่มภาพ">+</button>` : '');
+    wrap.querySelectorAll('.rm').forEach(b =>
+      b.addEventListener('click', e => { e.stopPropagation(); removeFile(+b.dataset.i); }));
+  }
+
+  dz.addEventListener('click', e => {
+    if (e.target.closest('.qt')) return;  // คลิกบน thumbnail ไม่ต้องเปิด file picker
+    fileInput.click();
+  });
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor = 'var(--accent)'; });
+  dz.addEventListener('dragleave', () => { dz.style.borderColor = ''; });
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.style.borderColor = '';
+    if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+  });
+  fileInput.addEventListener('change', () => { addFiles(fileInput.files); fileInput.value = ''; });
+
+  // ---------- capabilities + สถานะเซิร์ฟเวอร์ ----------
+  let clipReady = false, serverOnline = false;
+  const serverPill = $('serverPill'), serverText = $('serverText');
+
+  function setServer(online) {
+    serverOnline = online;
+    serverPill.classList.remove('checking', 'offline');
+    if (online) { serverText.textContent = 'เซิร์ฟเวอร์พร้อมใช้งาน · Online'; }
+    else { serverPill.classList.add('offline'); serverText.textContent = 'เซิร์ฟเวอร์ไม่พร้อมใช้งาน · Offline'; }
+  }
+
+  function checkServer() {
+    // serverPill.classList.add('checking');
+    // serverText.textContent = 'กำลังตรวจสอบเซิร์ฟเวอร์…';
+    fetch('/api/capabilities', { cache: 'no-store' })
+      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      .then(c => {
+        setServer(true);
+        serverPill.classList.remove('checking');
+        const ready = pw.querySelector('.ready');
+        if (c.playwright) { ready.textContent = 'พร้อม'; ready.style.color = 'var(--good)'; }
+        else { ready.textContent = 'ยังไม่ติดตั้ง'; ready.style.color = '#b91c1c'; ready.style.background = '#fef2f2'; ready.style.borderColor = '#fecaca'; }
+        clipReady = !!(c.clip && c.clip.available);
+        const tag = document.querySelector('.mode[data-mode="similar"] .tag');
+        if (tag && !clipReady) tag.textContent = 'ต้องติดตั้งเพิ่ม';
+      })
+      .catch(() => setServer(false));
+  }
+  checkServer();
+  // ตรวจสอบซ้ำทุก 10 วินาที เผื่อเซิร์ฟเวอร์ดับ/กลับมาระหว่างใช้งาน
+  setInterval(checkServer, 10000);
+
+  // ---------- clear button ----------
+  document.querySelector('.btn-ghost').addEventListener('click', () => {
+    clearFiles();
+    $('urls').value = ''; $('scope').value = '';
+    $('results').innerHTML = '';
+  });
+
+  // ===================== processing overlay control =====================
+  const proc = $('proc'), procTitle = $('procTitle'), procEn = $('procEn'),
+        procTimer = $('procTimer'), procFill = $('procFill'),
+        procDetail = $('procDetail'), procCount = $('procCount');
+  const steps = [...document.querySelectorAll('.step')];
+  let timerId = null, t0 = 0;
+
+  function setStep(i) {
+    steps.forEach((s, k) => { s.classList.toggle('done', k < i); s.classList.toggle('active', k === i); });
+  }
+  function openOverlay() {
+    proc.classList.add('show');
+    document.querySelector('.proc-spin').style.borderTopColor = 'var(--accent)';
+    t0 = performance.now(); setStep(0); procFill.style.width = '0%';
+    timerId = setInterval(() => { procTimer.textContent = ((performance.now()-t0)/1000).toFixed(1)+' วิ'; }, 90);
+  }
+  function closeOverlay() { proc.classList.remove('show'); if (timerId) { clearInterval(timerId); timerId = null; } }
+
+  // ---------- state สะสมระหว่าง stream (ใช้แสดงผลบางส่วนถ้าหลุดกลางทาง) ----------
+  let st = null;
+  function resetSearchState(mode) {
+    st = {
+      mode,                 // 'inside' | 'similar'
+      queryFiles: queryFiles.slice(), // snapshot ภาพ query ที่ใช้ค้นหารอบนี้
+      pages: [],            // URL หน้าเว็บทั้งหมด (จาก backend)
+      crawled: new Set(),   // หน้าเว็บที่ดึงเสร็จแล้ว (รวมที่ error)
+      failedPages: new Set(),// หน้าเว็บที่ดึงไม่สำเร็จ
+      pageErrors: {},        // page -> ข้อความ error ของหน้าที่ดึงไม่สำเร็จ
+      pageRemaining: null,  // page -> จำนวนรูปที่ยังวิเคราะห์ไม่เสร็จ (null = ยังไม่ถึงขั้น collected)
+      matches: [],          // ผลลัพธ์ที่เจอระหว่างทาง
+      analyzeDone: 0, analyzeTotal: 0, totalImages: 0,
+      gotDone: false,       // ได้รับ event 'done' จากเซิร์ฟเวอร์แล้วหรือยัง
+    };
+  }
+
+  function handleEvent(m) {
+    switch (m.stage) {
+      case 'start':
+        if (st && m.pages) st.pages = m.pages;
+        setStep(0); procFill.style.width = '4%';
+        procTitle.childNodes[0].textContent = `กำลังดึงหน้าเว็บ (${m.pages_total} หน้า)… `;
+        procEn.textContent = 'Fetching pages';
+        procDetail.textContent = 'กำลังเชื่อมต่อกับเว็บ…';
+        procCount.textContent = `0 / ${m.pages_total} หน้า`;
+        break;
+      case 'crawl':
+        if (st && m.page) {
+          st.crawled.add(m.page);
+          if (m.error) { st.failedPages.add(m.page); st.pageErrors[m.page] = m.error; }
+        }
+        setStep(0);
+        procFill.style.width = (4 + (m.pages_done/m.pages_total)*24) + '%';
+        procCount.textContent = `${m.pages_done} / ${m.pages_total} หน้า`;
+        procDetail.textContent = `พบรูปสะสม ${m.images_found} รูป`;
+        break;
+      case 'collected':
+        if (st) {
+          st.totalImages = m.total_image_urls;
+          st.pageRemaining = Object.assign({}, m.page_image_counts || {});
+        }
+        setStep(1); procFill.style.width = '32%';
+        procTitle.childNodes[0].textContent = 'รวบรวมรูปเสร็จ กำลังเตรียมวิเคราะห์… ';
+        procEn.textContent = 'Collecting images';
+        procDetail.textContent = m.pages_failed ? `ดึงไม่สำเร็จ ${m.pages_failed} หน้า` : 'พบรูปภาพในหน้าเว็บ';
+        procCount.textContent = `${m.total_image_urls} รูป`;
+        break;
+      case 'query_ready':
+        procDetail.textContent = `อ่านภาพค้นหาแล้ว ${m.queries_ready || 1} ภาพ (จุดเด่นรวม ${m.keypoints})`;
+        break;
+      case 'embed_query':
+        procTitle.childNodes[0].textContent = 'กำลังคำนวณเวกเตอร์ภาพ (CLIP)… ';
+        procEn.textContent = 'Embedding query';
+        break;
+      case 'download':
+        setStep(2);
+        procFill.style.width = (32 + (m.done/m.total)*28) + '%';
+        procTitle.childNodes[0].textContent = 'กำลังดาวน์โหลดรูป… ';
+        procEn.textContent = 'Downloading';
+        procCount.textContent = `${m.done} / ${m.total} รูป`;
+        break;
+      case 'analyze':
+        if (st) {
+          st.analyzeDone = m.done; st.analyzeTotal = m.total;
+          if (m.page && st.pageRemaining && st.pageRemaining[m.page] > 0) st.pageRemaining[m.page]--;
+          if (m.matches) st.matches.push(...m.matches);
+        }
+        setStep(2);
+        procFill.style.width = (32 + (m.done/m.total)*66) + '%';
+        procTitle.childNodes[0].textContent = 'กำลังวิเคราะห์และเทียบภาพ… ';
+        procEn.textContent = 'Analyzing & matching';
+        procCount.textContent = `${m.done} / ${m.total} รูป`;
+        procDetail.textContent = m.found ? `เจอแล้ว ${m.found} ภาพ` : 'ประมวลผล…';
+        break;
+      case 'done':
+        if (st) st.gotDone = true;
+        setStep(3); procFill.style.width = '100%';
+        steps.forEach(s => { s.classList.remove('active'); s.classList.add('done'); });
+        document.querySelector('.proc-spin').style.borderTopColor = 'var(--good)';
+        procTitle.childNodes[0].textContent = 'ค้นหาเสร็จสิ้น ';
+        procEn.textContent = 'Done';
+        setTimeout(() => { closeOverlay(); if (m.error) showError(m.error); else renderResults(m); }, 600);
+        break;
+    }
+  }
+
+  async function consumeStream(res) {
+    const reader = res.body.getReader(), dec = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let idx;
+      while ((idx = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, idx).trim(); buf = buf.slice(idx + 1);
+        if (!line) continue;
+        try { handleEvent(JSON.parse(line)); } catch {} // ข้ามบรรทัดที่เสียหาย (เช่น โดนตัดกลางบรรทัด)
+      }
+    }
+  }
+
+  // ===================== stop button =====================
+  let aborter = null, userStopped = false;
+  $('stopBtn').addEventListener('click', () => {
+    if (!aborter) return;
+    userStopped = true;
+    $('stopBtn').disabled = true;
+    procDetail.textContent = 'กำลังหยุดการทำงาน…';
+    aborter.abort();   // ตัด fetch -> เซิร์ฟเวอร์จะยกเลิกงานที่เหลือเอง
+  });
+
+  // ===================== search =====================
+  $('searchBtn').addEventListener('click', async () => {
+    if (!serverOnline) { toast('เซิร์ฟเวอร์ไม่พร้อมใช้งาน — กรุณารันแอป (python -m uvicorn main:app ...) ก่อนค้นหา', 'error'); return; }
+    if (!queryFiles.length) { toast('กรุณาเลือกภาพที่ต้องการค้นหาอย่างน้อย 1 ภาพ', 'warn'); return; }
+    if (!$('urls').value.trim()) { toast('กรุณาใส่ URL อย่างน้อย 1 รายการ', 'warn'); return; }
+    const mode = currentMode();
+    if (mode === 'similar' && !clipReady) {
+      toast('โหมด "หาภาพที่คล้ายกัน" ต้องติดตั้งโมดูลเสริม (CLIP) ก่อน', 'warn'); return;
+    }
+
+    const fd = new FormData();
+    queryFiles.forEach(f => fd.append('images', f));
+    fd.append('urls', $('urls').value);
+    fd.append('mode', mode);
+    fd.append('render_js', pw.classList.contains('on'));
+    fd.append('scope_selector', $('scope').value);
+    fd.append('min_inliers', inlier.value);
+    fd.append('ratio_test', ratio.value);
+    fd.append('similarity_threshold', '0.75');
+
+    $('results').innerHTML = '';
+    resetSearchState(mode);
+    aborter = new AbortController();
+    userStopped = false;
+    $('stopBtn').disabled = false;
+    openOverlay();
+    try {
+      const res = await fetch('/api/search/stream', { method: 'POST', body: fd, signal: aborter.signal });
+      if (!res.ok) { let msg = 'เกิดข้อผิดพลาด'; try { msg = (await res.json()).error || msg; } catch {} throw new Error(msg); }
+      await consumeStream(res);
+      // stream จบโดยไม่มี event 'done' = ถูกตัดกลางทางฝั่งเซิร์ฟเวอร์
+      if (st && !st.gotDone) { closeOverlay(); showPartial('การเชื่อมต่อถูกตัดระหว่างประมวลผล'); }
+    } catch (err) {
+      closeOverlay();
+      const msg = userStopped ? 'หยุดการทำงานโดยผู้ใช้' : (err.message || 'network error');
+      if (st && st.pages.length) showPartial(msg);
+      else if (userStopped) showError('หยุดการทำงานแล้ว — ยังไม่มีผลลัพธ์เพราะการค้นหาเพิ่งเริ่มต้น');
+      else showError(err.message);
+    } finally {
+      aborter = null;
+    }
+  });
+
+  // ===================== render =====================
+  function hostOf(u) { try { return new URL(u).host; } catch { return u; } }
+  function esc(s) { return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  function fileName(u) { try { return decodeURIComponent(new URL(u).pathname.split('/').pop()) || u; } catch { return u; } }
+
+  function showError(msg) {
+    $('results').innerHTML = `<div class="empty err">❌ ${esc(msg)}</div>`;
+  }
+
+  // สร้าง HTML ของ grid ผลลัพธ์ (ใช้ทั้งผลสมบูรณ์และผลบางส่วน)
+  function matchGridHtml(matches, isSim) {
+    let html = `<div class="match-grid" style="margin-top:22px">`;
+    matches.forEach(m => {
+      const pct = isSim ? Math.round(m.score*100) : Math.round((m.confidence||0)*100);
+      const cls = pct >= 70 ? 'high' : pct >= 40 ? 'mid' : 'low';
+      const barColor = cls === 'high' ? 'var(--good)' : cls === 'mid' ? 'var(--accent)' : 'var(--faint)';
+      const rowL = isSim ? 'ความคล้าย' : `inliers ${m.inliers}`;
+      const rowR = isSim ? 'cosine' : `matches ${m.good_matches}`;
+      const dups = m.duplicates ? `<div class="dups">+ พบรูปเดียวกันอีก ${m.duplicates} URL</div>` : '';
+      const page = m.source_page || '';
+      const src = page ? `<a class="src" href="${esc(page)}" target="_blank" title="${esc(page)}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
+            <span>${esc(page)}</span>
+          </a>` : '';
+      // thumbnail ภาพ query ที่ตรงกับรูปนี้ (โชว์เมื่อค้นหาด้วยมากกว่า 1 ภาพ)
+      let qhits = '';
+      const hits = m.hits || (m.query_index != null ? [m] : []);
+      if (st && st.queryFiles.length > 1 && hits.length) {
+        qhits = `<div class="qhits"><span>ตรงกับ</span>` + hits.map(h => {
+          const f = st.queryFiles[h.query_index];
+          const hp = Math.round((isSim ? h.score : (h.confidence || 0)) * 100);
+          return f ? `<img src="${thumbUrl(f)}" alt="" title="${esc(f.name)} · ${hp}%">`
+                   : `<em>${esc(h.query_name || '')}</em>`;
+        }).join('') + `</div>`;
+      }
+      html += `<div class="match">
+        <a class="img" href="${esc(m.url)}" target="_blank">
+          <span class="badge ${cls}">${pct}%</span>
+          <img src="${esc(m.url)}" loading="lazy" alt="">
+        </a>
+        <div class="meta">
+          <div class="nm" title="${esc(m.url)}">${esc(fileName(m.url))}</div>
+          <div class="bar"><i style="width:${pct}%;background:${barColor}"></i></div>
+          <div class="row"><span>${rowL}</span><span>${rowR}</span></div>
+          ${qhits}
+          ${dups}
+          ${src}
+        </div>
+      </div>`;
+    });
+    return html + `</div>`;
+  }
+
+  // thumbnail ภาพ query ทั้งหมด (ใช้ใน summary bar)
+  function queryThumbsHtml() {
+    if (!st || !st.queryFiles.length) return '';
+    return `<div class="res-thumbs">` +
+      st.queryFiles.map(f => `<img src="${thumbUrl(f)}" alt="" title="${esc(f.name)}">`).join('') +
+      `</div>`;
+  }
+
+  // รวมผลลัพธ์ทุกภาพ query เข้าเป็นรายการเดียว: รูปจากเว็บ 1 รูป = การ์ด 1 ใบ
+  // ถ้ารูปเดียวกันตรงกับ query หลายภาพ จะเก็บไว้ใน m.hits เพื่อโชว์ว่าตรงกับภาพไหนบ้าง
+  function mergeMatches(matches, isSim) {
+    const better = (a, b) => isSim ? (a.score || 0) > (b.score || 0)
+                                   : (a.inliers || 0) > (b.inliers || 0);
+    const byUrl = new Map();
+    matches.forEach(m => {
+      const e = byUrl.get(m.url);
+      if (!e) { byUrl.set(m.url, { best: m, hits: [m] }); return; }
+      e.hits.push(m);
+      if (better(m, e.best)) e.best = m;
+    });
+    const merged = [...byUrl.values()].map(e => ({
+      ...e.best,
+      hits: e.hits.slice().sort((a, b) => better(a, b) ? -1 : 1),
+    }));
+    merged.sort((a, b) => better(a, b) ? -1 : 1);
+    return merged;
+  }
+
+  // การ์ดแสดง URL ของหน้าที่ "ดึงไม่สำเร็จ" พร้อมเหตุผล + ปุ่มคัดลอก
+  // errors: array ของ { page, error }
+  function failedPagesHtml(errors) {
+    if (!errors || !errors.length) return '';
+    const rows = errors.map(e => `<div class="fail-row">
+        <a class="fail-url" href="${esc(e.page)}" target="_blank" title="${esc(e.page)}">${esc(e.page)}</a>
+        <span class="fail-reason" title="${esc(e.error || '')}">${esc(e.error || 'ดึงไม่สำเร็จ')}</span>
+      </div>`).join('');
+    return `<div class="card fail-card" style="margin-top:18px"><div class="card-pad">
+      <div class="field-label">
+        <span class="th" style="color:#b91c1c">URL ที่ดึงไม่สำเร็จ (${errors.length} หน้า)</span>
+        <span class="en">Failed URLs</span>
+      </div>
+      <div class="fail-list">${rows}</div>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn btn-ghost" type="button" id="copyFailBtn">คัดลอก URL ที่ดึงไม่สำเร็จ</button>
+        <button class="btn btn-primary" type="button" id="retryFailBtn">ลองใหม่กับ URL เหล่านี้</button>
+      </div>
+    </div></div>`;
+  }
+
+  // ผูก event ให้ปุ่มในการ์ด failed (เรียกหลัง innerHTML แล้ว)
+  function bindFailedActions(urls) {
+    if (!urls || !urls.length) return;
+    const joined = urls.join('\n');
+    const copy = $('copyFailBtn'), retry = $('retryFailBtn');
+    if (copy) copy.addEventListener('click', () => {
+      navigator.clipboard.writeText(joined).then(() => { copy.textContent = 'คัดลอกแล้ว ✓'; });
+    });
+    if (retry) retry.addEventListener('click', () => {
+      $('urls').value = joined;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+
+  // URL ของหน้าที่ "ยังไม่เสร็จ" = ยังไม่ได้ดึงหน้า หรือยังวิเคราะห์รูปไม่ครบ
+  function remainingPages() {
+    if (!st || !st.pages.length) return [];
+    return st.pages.filter(p => {
+      if (st.failedPages.has(p)) return false;        // ดึงไม่สำเร็จ (รายงานแยกต่างหาก)
+      if (!st.crawled.has(p)) return true;            // ยังไม่ทันได้ดึงหน้า
+      if (!st.pageRemaining) return true;             // หลุดก่อนขั้นรวบรวมรูปเสร็จ
+      return (st.pageRemaining[p] || 0) > 0;          // ยังวิเคราะห์รูปจากหน้านี้ไม่ครบ
+    });
+  }
+
+  // แสดง "ผลลัพธ์บางส่วน" เมื่อ stream หลุดกลางทาง: ผลที่เจอแล้ว + URL ที่ยังไม่เสร็จ
+  function showPartial(msg) {
+    const root = $('results');
+    const isSim = st.mode === 'similar';
+    const took = t0 ? ((performance.now()-t0)/1000).toFixed(1) : '0';
+    const merged = mergeMatches(st.matches, isSim);
+    const remaining = remainingPages();
+    const doneCount = st.pages.length - remaining.length - st.failedPages.size;
+
+    let html = `<div class="empty err" style="margin-bottom:18px">⚠️ การค้นหาหยุดกลางทาง (${esc(msg)})
+      — ด้านล่างคือผลลัพธ์เท่าที่วิเคราะห์เสร็จแล้ว</div>`;
+
+    html += `<div class="res-bar">
+      ${queryThumbsHtml()}
+      <div class="res-summary">
+        <div class="big">พบ <b>${merged.length}</b> ภาพที่ตรงกัน (ผลบางส่วน)</div>
+        <div class="sub">ค้นหาด้วย ${st.queryFiles.length} ภาพ
+          · วิเคราะห์แล้ว ${st.analyzeDone}${st.analyzeTotal ? ' / ' + st.analyzeTotal : ''} รูป
+          · เว็บเสร็จสมบูรณ์ ${doneCount} / ${st.pages.length} หน้า · ใช้เวลา ${took} วิ</div>
+      </div>
+      <div class="res-chips">
+        <span class="chip mode">${isSim ? 'หาภาพที่คล้ายกัน' : 'หาภาพย่อยในภาพใหญ่'} <span class="mono">${isSim ? 'CLIP' : 'SIFT'}</span></span>
+        <span class="chip warn">ยังไม่เสร็จ ${remaining.length} หน้า</span>
+        ${st.failedPages.size ? `<span class="chip warn">ดึงไม่สำเร็จ ${st.failedPages.size} หน้า</span>` : ''}
+      </div>
+    </div>`;
+
+    if (remaining.length) {
+      html += `<div class="card" style="margin-top:18px"><div class="card-pad">
+        <div class="field-label">
+          <span class="th">URL ที่ยังไม่ได้วิเคราะห์ / วิเคราะห์ไม่ครบ (${remaining.length} หน้า)</span>
+          <span class="en">Unfinished URLs</span>
+        </div>
+        <textarea class="ta" id="remainUrls" readonly style="min-height:140px">${esc(remaining.join('\n'))}</textarea>
+        <div class="actions" style="margin-top:12px">
+          <button class="btn btn-ghost" type="button" id="copyRemainBtn">คัดลอก URL ที่เหลือ</button>
+          <button class="btn btn-primary" type="button" id="resumeBtn">ใส่ URL ที่เหลือในช่องค้นหา</button>
+        </div>
+      </div></div>`;
+    }
+
+    // การ์ด URL ที่ดึงไม่สำเร็จ (พร้อมเหตุผล)
+    const failedErrors = [...st.failedPages].map(p => ({ page: p, error: st.pageErrors[p] }));
+    html += failedPagesHtml(failedErrors);
+
+    if (merged.length) {
+      html += matchGridHtml(merged, isSim);
+    } else {
+      html += `<div class="empty" style="margin-top:18px">ยังไม่พบภาพที่ตรงกันก่อนการเชื่อมต่อหลุด</div>`;
+    }
+
+    root.innerHTML = html;
+    if (remaining.length) {
+      $('copyRemainBtn').addEventListener('click', () => {
+        navigator.clipboard.writeText(remaining.join('\n'))
+          .then(() => { $('copyRemainBtn').textContent = 'คัดลอกแล้ว ✓'; });
+      });
+      $('resumeBtn').addEventListener('click', () => {
+        $('urls').value = remaining.join('\n');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+    bindFailedActions(failedErrors.map(e => e.page));
+    root.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function renderResults(data) {
+    const root = $('results');
+    const took = t0 ? ((performance.now()-t0)/1000).toFixed(1) : '0';
+    const pagesOk = (data.pages_requested||0) - (data.pages_failed||0);
+    const isSim = data.mode === 'similar';
+    const nq = st ? st.queryFiles.length : 1;
+    const merged = mergeMatches(data.matches, isSim);
+
+    // summary bar
+    let html = `<div class="res-bar">
+      ${queryThumbsHtml()}
+      <div class="res-summary">
+        <div class="big">พบ <b>${merged.length}</b> ภาพที่ตรงกัน</div>
+        <div class="sub">ค้นหาด้วย ${nq} ภาพ · สแกน ${data.scanned} รูป จาก ${data.total_image_urls} รูปที่พบ · เว็บ ${pagesOk}/${data.pages_requested} หน้า · ใช้เวลา ${took} วิ</div>
+      </div>
+      <div class="res-chips">
+        <span class="chip mode">${isSim ? 'หาภาพที่คล้ายกัน' : 'หาภาพย่อยในภาพใหญ่'} <span class="mono">${isSim ? 'CLIP' : 'SIFT'}</span></span>
+        <span class="chip">${data.total_image_urls} รูป</span>
+        ${data.pages_failed ? `<span class="chip warn">ดึงไม่สำเร็จ ${data.pages_failed} หน้า</span>` : ''}
+      </div>
+    </div>`;
+
+    // การ์ด URL ที่ดึงไม่สำเร็จ (พร้อมเหตุผลที่เซิร์ฟเวอร์ส่งมา)
+    const failedErrors = data.page_errors || [];
+    html += failedPagesHtml(failedErrors);
+
+    // ผลลัพธ์รวมทุกภาพ query เป็น grid เดียว (เรียงจากตรงที่สุดก่อน)
+    if (merged.length) {
+      html += matchGridHtml(merged, isSim);
+    } else {
+      html += `<div class="empty" style="margin-top:18px">ไม่พบผลลัพธ์ — ลองลดเกณฑ์ความเข้มงวด, ล้างช่อง CSS selector, หรือเปิด render ด้วยเบราว์เซอร์จริง</div>`;
+    }
+    root.innerHTML = html;
+    bindFailedActions(failedErrors.map(e => e.page));
+    root.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+</script>
+</body>
+</html>

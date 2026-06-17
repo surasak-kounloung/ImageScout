@@ -1,0 +1,9 @@
+# โมดูลเสริมสำหรับโหมด "หาภาพที่คล้ายกัน" (CLIP + FAISS)
+# ติดตั้งแยกเพราะมีขนาดใหญ่ (torch ~200MB, model weights ~350MB ตอนใช้ครั้งแรก)
+#
+# วิธีติดตั้ง (CPU):
+#   pip install torch==2.5.1 --index-url https://download.pytorch.org/whl/cpu
+#   pip install -r requirements-clip.txt
+torch==2.5.1
+open_clip_torch==2.29.0
+faiss-cpu==1.9.0.post1

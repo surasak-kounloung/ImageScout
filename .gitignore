@@ -1,0 +1,42 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# ===== Models / weights / caches (CLIP downloads ~350MB) =====
+*.pt
+*.pth
+*.onnx
+*.bin
+.cache/
+torch_cache/
+
+# ===== Runtime / uploads / temp =====
+*.log
+tmp/
+temp/
+uploads/
+
+# ===== OS =====
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# ===== Editors / IDE =====
+.idea/
+.vscode/
+*.swp
+*~
