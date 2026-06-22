@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ค้นหารูปภาพในเว็บไซต์ · Image Finder</title>
+<title>ค้นหารูปภาพในเว็บไซต์ · Image Scout</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -23,7 +23,7 @@
   .match .meta .src span { white-space:normal; overflow-wrap:anywhere; word-break:normal; }
   .match .meta .src:hover { text-decoration:underline; }
   .chip.warn { background:#fffbeb; border-color:#fde68a; color:var(--warn); }
-  /* อัปโหลดหลายภาพ (สูงสุด 12) */
+  /* อัปโหลดหลายภาพ (สูงสุด 30) */
   .dz-thumbs { display:none; grid-template-columns:repeat(auto-fill, minmax(142px, 1fr)); gap:10px; width:100%; }
   .dropzone.has-img .dz-thumbs { display:grid; }
   .dz-thumbs .qt { position:relative; aspect-ratio:1; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:#fff; box-shadow:var(--sh-sm); }
@@ -118,15 +118,15 @@
               <path d="M19.6 19.6L22 22"/>
             </svg>
           </span>
-          <span class="name">Image&nbsp;Finder<small>Visual search engine</small></span>
+          <span class="name">Image&nbsp;Scout<small>Visual search engine</small></span>
         </div>
         <span class="top-pill checking" id="serverPill"><span class="dot"></span> <span id="serverText">กำลังตรวจสอบเซิร์ฟเวอร์…</span></span>
       </div>
 
       <div class="hero-head">
         <h1>ค้นหารูปภาพในเว็บไซต์</h1>
-        <p>อัปโหลดภาพ (สูงสุด 12 ภาพ) แล้วใส่ URL ของเว็บ — เลือกได้ว่าจะหา “ภาพย่อยในภาพใหญ่” หรือ “ภาพที่หน้าตาคล้ายกัน”</p>
-        <p class="en-sub">Upload up to 12 images and paste URLs — find a logo inside other images, or visually similar pictures.</p>
+        <p>อัปโหลดภาพ (สูงสุด 30 ภาพ) แล้วใส่ URL ของเว็บ — เลือกได้ว่าจะหา “ภาพย่อยในภาพใหญ่” หรือ “ภาพที่หน้าตาคล้ายกัน”</p>
+        <p class="en-sub">Upload up to 30 images and paste URLs — find a logo inside other images, or visually similar pictures.</p>
       </div>
     </div>
   </header>
@@ -180,7 +180,7 @@
               <span class="num" style="width:22px;height:22px;font-size:11px;display:grid;place-items:center;border-radius:6px;background:var(--accent-50);color:var(--accent-strong);font-family:var(--font-mono);font-weight:700;border:1px solid var(--accent-100)">1</span>
               <span class="th">ภาพที่ต้องการค้นหา</span>
               <span class="en">Query images</span>
-              <span class="opt" id="dzCount">0 / 12 ภาพ</span>
+              <span class="opt" id="dzCount">0 / 30 ภาพ</span>
             </div>
             <div class="dropzone" id="dz">
               <input type="file" id="file" accept="image/*" multiple hidden>
@@ -195,7 +195,7 @@
                   <div class="dz-t">คลิกเพื่อเลือกภาพ หรือลากไฟล์มาวาง</div>
                   <div class="dz-d">เลือกได้หลายภาพพร้อมกัน · Click to upload or drag &amp; drop</div>
                 </div>
-                <div class="dz-formats">PNG · JPG · WEBP · สูงสุด 12 ภาพ ภาพละไม่เกิน 10MB</div>
+                <div class="dz-formats">PNG · JPG · WEBP · สูงสุด 30 ภาพ ภาพละไม่เกิน 10MB</div>
               </div>
               <div class="dz-thumbs" id="dzThumbs"></div>
             </div>
@@ -394,8 +394,8 @@
   ratio.addEventListener('input', e => { $('ratioVal').textContent = (+e.target.value).toFixed(2); fill(e.target); });
   fill(inlier); fill(ratio);
 
-  // ---------- file upload (หลายภาพ สูงสุด 12) ----------
-  const MAX_QUERY = 12;
+  // ---------- file upload (หลายภาพ สูงสุด 30) ----------
+  const MAX_QUERY = 30;
   const fileInput = $('file'), dz = $('dz');
   let queryFiles = [];           // File[] ที่เลือกไว้
   const thumbUrls = new Map();   // File -> object URL (กัน revoke/สร้างซ้ำ)

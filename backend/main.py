@@ -437,12 +437,12 @@ async def _search_events(query_items, pages, mode, render_js, ratio_test, min_in
               "matches": matches, "queries": queries_meta, **base_meta})
 
 
-MAX_QUERY_IMAGES = 12
+MAX_QUERY_IMAGES = 30
 
 
 @app.post("/api/search/stream")
 async def search_stream(
-    images: list[UploadFile] = File(...),        # ภาพ query สูงสุด 12 ภาพ
+    images: list[UploadFile] = File(...),        # ภาพ query สูงสุด 30 ภาพ
     urls: str = Form(...),
     mode: str = Form("inside"),
     render_js: bool = Form(False),
