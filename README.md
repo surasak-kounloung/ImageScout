@@ -42,8 +42,8 @@ pip install -r requirements-clip.txt
 ### 3. รันเซิร์ฟเวอร์
 
 ```powershell
-python main.py            # เปิด http://127.0.0.1:8000
-python test_match.py      # (ตัวเลือก) ทดสอบ matcher offline ด้วยภาพสังเคราะห์
+python backend/main.py            # เปิด http://127.0.0.1:8000
+python backend/test_match.py      # (ตัวเลือก) ทดสอบ matcher offline ด้วยภาพสังเคราะห์
 ```
 
 ## การใช้งานบนหน้าเว็บ
