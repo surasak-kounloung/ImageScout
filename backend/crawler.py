@@ -36,6 +36,28 @@ def _is_image_url(url: str) -> bool:
     return path.endswith(_IMG_EXT)
 
 
+def _best_srcset_url(srcset: str) -> str | None:
+    """เลือก URL ความละเอียดสูงสุดจาก srcset (descriptor แบบ '840w' หรือ '2x')
+
+    ถ้าไม่มี descriptor เลย จะคืนตัวแรกที่เจอ
+    """
+    best_url: str | None = None
+    best_w = -1.0
+    for part in srcset.split(","):
+        tokens = part.strip().split()
+        if not tokens:
+            continue
+        w = 0.0
+        if len(tokens) > 1:
+            try:
+                w = float(tokens[1].lower().rstrip("wx"))
+            except ValueError:
+                w = 0.0
+        if w > best_w:
+            best_w, best_url = w, tokens[0]
+    return best_url
+
+
 def _extract_from_html(html: str, page_url: str, scope_selector: str | None = None) -> list[str]:
     """แยก image URL จาก HTML string
 
@@ -66,14 +88,14 @@ def _extract_from_html(html: str, page_url: str, scope_selector: str | None = No
 
     for root in roots:
         for img in root.find_all("img"):
-            add(img.get("src"))
-            add(img.get("data-src"))
-            add(img.get("data-original"))
-            add(img.get("data-lazy-src"))
-            srcset = img.get("srcset") or img.get("data-srcset")
-            if srcset:
-                for part in srcset.split(","):
-                    add(part.strip().split(" ")[0])
+            # 1 tag = 1 URL: ใช้ src ก่อน ถ้าไม่มีค่อย fallback ไป srcset (เลือกความละเอียดสูงสุด)
+            src = (img.get("src") or "").strip()
+            if src:
+                add(src)
+            else:
+                srcset = img.get("srcset") or img.get("data-srcset")
+                if srcset:
+                    add(_best_srcset_url(srcset))
 
         for src in root.find_all("source"):
             srcset = src.get("srcset")

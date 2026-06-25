@@ -23,7 +23,7 @@ class MatchParams:
     ratio_test: float = 0.75      # Lowe's ratio (ต่ำ = เข้มงวด, จับคู่น้อยลงแต่แม่นขึ้น)
     min_good_matches: int = 12    # จำนวนคู่ฟีเจอร์ขั้นต่ำก่อนลองหา homography
     min_inliers: int = 10         # inlier ขั้นต่ำหลัง RANSAC ถึงจะถือว่า "เจอ"
-    max_dim: int = 1200           # ย่อภาพที่ใหญ่เกินไปก่อนประมวลผล (เร็วขึ้น)
+    max_dim: int = 2400           # ย่อภาพที่ใหญ่เกินไปก่อนประมวลผล (สูง = จับ instance เล็กในภาพใหญ่ได้ดีขึ้นแต่ช้าลง)
 
     @classmethod
     def clamp(cls, ratio_test=None, min_good_matches=None, min_inliers=None, max_dim=None):
@@ -134,7 +134,7 @@ except AttributeError:  # เผื่อ build ที่ไม่มี SIFT ->
     DETECTOR_NAME = "ORB"
 
 
-def compute_features(image_bytes: bytes, max_dim: int = 1200):
+def compute_features(image_bytes: bytes, max_dim: int = 2400):
     """คำนวณ keypoints + descriptors ของภาพ (cache ฝั่ง query ได้)"""
     gray = _load_gray(image_bytes)
     if gray is None:

@@ -23,6 +23,51 @@
   .match .meta .src span { white-space:normal; overflow-wrap:anywhere; word-break:normal; }
   .match .meta .src:hover { text-decoration:underline; }
   .chip.warn { background:#fffbeb; border-color:#fde68a; color:var(--warn); }
+  /* แบ่งผลลัพธ์เป็นกลุ่มตาม URL หน้าเว็บต้นทาง */
+  .match-groups { display:flex; flex-direction:column; gap:26px; }
+  .match-group .match-grid { margin-top:12px !important; }
+  .match-group-head { display:flex; align-items:center; gap:12px; padding:10px 14px;
+    background:var(--card); border:1px solid var(--line); border-radius:12px; box-shadow:var(--sh-sm); }
+  .match-group-head .gp-url { flex:1; min-width:0; display:flex; align-items:center; gap:7px;
+    font-family:var(--font-mono); font-size:12.5px; color:var(--accent-strong); text-decoration:none; }
+  .match-group-head .gp-url svg { width:14px; height:14px; flex:none; }
+  .match-group-head .gp-url span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .match-group-head .gp-url:hover span { text-decoration:underline; }
+  .match-group-head .gp-url.gp-unknown { color:var(--muted); }
+  .match-group-head .gp-count { flex:none; font-size:11px; color:var(--muted);
+    background:var(--bg); border:1px solid var(--line); padding:3px 11px; border-radius:999px; white-space:nowrap; }
+  .match-group-head .gp-pick { flex:none; display:inline-flex; align-items:center; cursor:pointer; padding-left:4px; }
+  .match-group-head .gp-check { width:20px; height:20px; cursor:pointer; accent-color:var(--accent); margin:0; }
+  /* แถบเลือก URL เกาะล่างจอ */
+  .sel-bar { position:fixed; left:50%; bottom:0; width:100vw; z-index:900; display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:11px 45px 11px 40px; background: linear-gradient(180deg, #2f6bf0, var(--accent)); box-shadow:var(--sh-lg);
+    transform:translateX(-50%) translateY(180%); transition:transform .3s cubic-bezier(.22,1,.36,1); }
+  .sel-bar.show { transform:translateX(-50%) translateY(0); }
+  .sel-bar .sel-count { font-size:13px; color:#fff; white-space:nowrap; }
+  .sel-bar .sel-count b { color:#fff; font-size:14px; font-weight:600; margin:0 5px; }
+  .sel-bar .btn { font-size:13px; color: var(--accent); white-space:nowrap; background:var(--accent-50); padding:8px 15px; border-radius:6px; }
+  /* modal แสดง URL ที่เลือก */
+  .sel-modal { position:fixed; inset:0; z-index:1100; display:none; align-items:center; justify-content:center; padding:20px; }
+  .sel-modal.show { display:flex; }
+  .sel-modal .sel-backdrop { position:absolute; inset:0; background:rgba(15,23,42,.45); }
+  .sel-modal .sel-dialog { position:relative; width:min(560px, 100%); max-height:80vh; display:flex; flex-direction:column;
+    background:var(--card); border:1px solid var(--line); border-radius:16px; box-shadow:var(--sh-lg); overflow:hidden; }
+  .sel-modal .sel-dialog-head { display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:16px 18px; border-bottom:1px solid var(--line); }
+  .sel-modal .sel-dialog-head strong { font-size:15px; color:var(--text); }
+  .sel-modal .sel-x { border:none; background:none; cursor:pointer; color:var(--faint); font-size:17px; line-height:1;
+    padding:4px 6px; border-radius:6px; }
+  .sel-modal .sel-x:hover { color:var(--text); background:var(--bg); }
+  .sel-modal .sel-list { overflow:auto; padding:14px 18px; display:flex; flex-direction:column; gap:8px; }
+  .sel-modal .sel-row { display:flex; align-items:stretch; gap:8px; }
+  .sel-modal .sel-list a { flex:1; min-width:0; font-family:var(--font-mono); font-size:12.5px; color:var(--accent-strong); text-decoration:none;
+    overflow-wrap:anywhere; padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:var(--bg); }
+  .sel-modal .sel-list a:hover { text-decoration:underline; border-color:var(--accent); }
+  .sel-modal .sel-copy { flex:none; display:flex; align-items:center; justify-content:center; width:38px; cursor:pointer;
+    color:var(--muted); border:1px solid var(--line); border-radius:9px; background:var(--bg); }
+  .sel-modal .sel-copy:hover { color:var(--accent-strong); border-color:var(--accent); }
+  .sel-modal .sel-copy svg { width:16px; height:16px; }
+  .sel-modal .sel-dialog-foot { display:flex; justify-content:flex-end; gap:10px; padding:14px 18px; border-top:1px solid var(--line); }
   /* อัปโหลดหลายภาพ (สูงสุด 30) */
   .dz-thumbs { display:none; grid-template-columns:repeat(auto-fill, minmax(142px, 1fr)); gap:10px; width:100%; }
   .dropzone.has-img .dz-thumbs { display:grid; }
@@ -36,7 +81,7 @@
   /* thumbnail ภาพ query ที่ตรงกันบนการ์ดผลลัพธ์ */
   .match .meta .qhits { display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin-top:7px; }
   .match .meta .qhits span { font-size:10px; color:var(--muted); }
-  .match .meta .qhits img { width:44px; height:44px; object-fit:cover; border-radius:6px; border:1px solid var(--line); }
+  .match .meta .qhits img { width:44px; height:44px; object-fit:contain; border-radius:6px; border:1px solid var(--line); }
   .match .meta .qhits em { font-size:10px; color:var(--muted); font-style:normal; }
   .res-thumbs { display:flex; gap:6px; flex-wrap:wrap; max-width:160px; }
   .res-thumbs img { width:34px; height:34px; object-fit:cover; border-radius:8px; border:1px solid var(--line); }
@@ -255,6 +300,15 @@
                   <input type="range" id="ratio" min="0.3" max="0.9" step="0.05" value="0.6">
                   <div class="slider-foot"><span class="end">ต่ำ = เข้มงวด แม่นขึ้น</span><span class="end">สูง = จับคู่มากขึ้น</span></div>
                 </div>
+
+                <div class="slider-row">
+                  <div class="slider-top">
+                    <span class="lab">ความละเอียดสูงสุด <span class="en">max resolution</span></span>
+                    <span class="val" id="maxDimVal">2400</span>
+                  </div>
+                  <input type="range" id="maxDim" min="800" max="2400" step="200" value="2400">
+                  <div class="slider-foot"><span class="end">ต่ำ = เร็วแต่พลาดภาพเล็ก</span><span class="end">สูง = จับ instance เล็กในภาพใหญ่ได้</span></div>
+                </div>
               </div>
             </div>
           </div>
@@ -331,6 +385,28 @@
 <!-- กล่องแจ้งเตือน toast (เด้งมุมขวาบน แทน alert) -->
 <div class="toast-wrap" id="toastWrap" aria-live="polite" aria-atomic="false"></div>
 
+<!-- แถบเลือก URL (เกาะล่างจอเมื่อมีการติ๊กเลือกอย่างน้อย 1 รายการ) -->
+<div class="sel-bar" id="selBar">
+  <span class="sel-count">เลือกแล้ว <b id="selCount">0</b> URL</span>
+  <button class="btn btn-primary" type="button" id="selShowBtn">แสดง URL ที่เลือก</button>
+</div>
+
+<!-- modal แสดง URL ที่เลือกทั้งหมด -->
+<div class="sel-modal" id="selModal" role="dialog" aria-modal="true" aria-labelledby="selModalTitle">
+  <div class="sel-backdrop" data-close></div>
+  <div class="sel-dialog">
+    <div class="sel-dialog-head">
+      <strong id="selModalTitle">URL ที่เลือก</strong>
+      <button class="sel-x" type="button" data-close aria-label="ปิด">✕</button>
+    </div>
+    <div class="sel-list" id="selList"></div>
+    <div class="sel-dialog-foot">
+      <button class="btn btn-ghost" type="button" id="selCopyBtn">คัดลอกทั้งหมด</button>
+      <button class="btn btn-primary" type="button" id="selCloseBtn">ปิด</button>
+    </div>
+  </div>
+</div>
+
 <script>
   const $ = id => document.getElementById(id);
 
@@ -368,6 +444,65 @@
     return close;
   }
 
+  // ---------- เลือกหน้าเว็บ (checkbox) → แถบล่าง + modal ----------
+  const selectedPages = new Set();
+
+  function updateSelBar() {
+    $('selCount').textContent = selectedPages.size;
+    $('selBar').classList.toggle('show', selectedPages.size > 0);
+  }
+
+  // sync หลัง render ผลลัพธ์ใหม่: คืนสถานะติ๊กให้ checkbox + ตัด URL ที่ไม่อยู่บนจอแล้วทิ้ง
+  function syncSelection() {
+    const present = new Set();
+    document.querySelectorAll('.gp-check').forEach(cb => {
+      present.add(cb.dataset.url);
+      cb.checked = selectedPages.has(cb.dataset.url);
+    });
+    [...selectedPages].forEach(u => { if (!present.has(u)) selectedPages.delete(u); });
+    updateSelBar();
+  }
+
+  // ติ๊ก/เอาออก (event delegation — checkbox ถูกสร้างใหม่ทุกครั้งที่ render)
+  document.addEventListener('change', e => {
+    const cb = e.target.closest('.gp-check');
+    if (!cb) return;
+    if (cb.checked) selectedPages.add(cb.dataset.url);
+    else selectedPages.delete(cb.dataset.url);
+    updateSelBar();
+  });
+
+  function openSelModal() {
+    const urls = [...selectedPages];
+    if (!urls.length) return;
+    $('selList').innerHTML = urls
+      .map(u => `<div class="sel-row">`
+        + `<a href="${esc(u)}" target="_blank" title="${esc(u)}">${esc(u)}</a>`
+        + `<button type="button" class="sel-copy" data-url="${esc(u)}" title="คัดลอกลิงก์" aria-label="คัดลอกลิงก์">`
+        + `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`
+        + `</button></div>`)
+      .join('');
+    $('selModalTitle').textContent = `URL ที่เลือก (${urls.length})`;
+    $('selModal').classList.add('show');
+  }
+  function closeSelModal() { $('selModal').classList.remove('show'); }
+
+  $('selShowBtn').addEventListener('click', openSelModal);
+  $('selCloseBtn').addEventListener('click', closeSelModal);
+  $('selCopyBtn').addEventListener('click', () => {
+    navigator.clipboard.writeText([...selectedPages].join('\n'))
+      .then(() => toast('คัดลอก URL ที่เลือกแล้ว', 'success'));
+  });
+  // คัดลอกทีละลิงก์ (event delegation — ปุ่มถูกสร้างใหม่ทุกครั้งที่เปิด modal)
+  $('selList').addEventListener('click', e => {
+    const btn = e.target.closest('.sel-copy');
+    if (!btn) return;
+    navigator.clipboard.writeText(btn.dataset.url)
+      .then(() => toast('คัดลอกลิงก์แล้ว', 'success'));
+  });
+  $('selModal').addEventListener('click', e => { if (e.target.hasAttribute('data-close')) closeSelModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSelModal(); });
+
   // ---------- mode toggle (data-mode: sub -> inside, similar -> similar) ----------
   document.querySelectorAll('.mode').forEach(m => {
     m.addEventListener('click', () => {
@@ -389,10 +524,11 @@
   $('advHead').addEventListener('click', () => adv.classList.toggle('open'));
   //adv.classList.add('open');
   function fill(el){ const p = (el.value - el.min) / (el.max - el.min) * 100; el.style.background = `linear-gradient(90deg, var(--accent) ${p}%, var(--line-2) ${p}%)`; }
-  const inlier = $('inlier'), ratio = $('ratio');
+  const inlier = $('inlier'), ratio = $('ratio'), maxDim = $('maxDim');
   inlier.addEventListener('input', e => { $('inlierVal').textContent = e.target.value; fill(e.target); });
   ratio.addEventListener('input', e => { $('ratioVal').textContent = (+e.target.value).toFixed(2); fill(e.target); });
-  fill(inlier); fill(ratio);
+  maxDim.addEventListener('input', e => { $('maxDimVal').textContent = e.target.value; fill(e.target); });
+  fill(inlier); fill(ratio); fill(maxDim);
 
   // ---------- file upload (หลายภาพ สูงสุด 30) ----------
   const MAX_QUERY = 30;
@@ -646,9 +782,13 @@
     fd.append('scope_selector', $('scope').value);
     fd.append('min_inliers', inlier.value);
     fd.append('ratio_test', ratio.value);
+    fd.append('max_dim', maxDim.value);
     fd.append('similarity_threshold', '0.75');
 
     $('results').innerHTML = '';
+    selectedPages.clear();
+    updateSelBar();
+    closeSelModal();
     resetSearchState(mode);
     aborter = new AbortController();
     userStopped = false;
@@ -681,7 +821,8 @@
   }
 
   // สร้าง HTML ของ grid ผลลัพธ์ (ใช้ทั้งผลสมบูรณ์และผลบางส่วน)
-  function matchGridHtml(matches, isSim) {
+  // hideSrc = true เมื่อแสดงแบบแบ่งกลุ่มตาม URL (หัวกลุ่มโชว์ URL อยู่แล้ว)
+  function matchGridHtml(matches, isSim, hideSrc) {
     let html = `<div class="match-grid" style="margin-top:22px">`;
     matches.forEach(m => {
       const pct = isSim ? Math.round(m.score*100) : Math.round((m.confidence||0)*100);
@@ -691,10 +832,10 @@
       const rowR = isSim ? 'cosine' : `matches ${m.good_matches}`;
       const dups = m.duplicates ? `<div class="dups">+ พบรูปเดียวกันอีก ${m.duplicates} URL</div>` : '';
       const page = m.source_page || '';
-      const src = page ? `<a class="src" href="${esc(page)}" target="_blank" title="${esc(page)}">
+      const src = (hideSrc || !page) ? '' : `<a class="src" href="${esc(page)}" target="_blank" title="${esc(page)}">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
             <span>${esc(page)}</span>
-          </a>` : '';
+          </a>`;
       // thumbnail ภาพ query ที่ตรงกับรูปนี้ (โชว์เมื่อค้นหาด้วยมากกว่า 1 ภาพ)
       let qhits = '';
       const hits = m.hits || (m.query_index != null ? [m] : []);
@@ -722,6 +863,49 @@
       </div>`;
     });
     return html + `</div>`;
+  }
+
+  // แบ่งผลลัพธ์ตามหน้าเว็บต้นทาง (source_page) แล้วแสดงเป็นกลุ่ม ๆ
+  // แต่ละกลุ่ม = 1 หน้าเว็บ มีหัวข้อเป็น URL ที่คลิกได้ + จำนวนภาพที่เจอ
+  function matchGroupsHtml(matches, isSim) {
+    const better = (a, b) => isSim ? (a.score || 0) > (b.score || 0)
+                                   : (a.inliers || 0) > (b.inliers || 0);
+    const byPage = new Map();
+    matches.forEach(m => {
+      const key = m.source_page || '';
+      if (!byPage.has(key)) byPage.set(key, []);
+      byPage.get(key).push(m);
+    });
+    // เรียงภาพในแต่ละกลุ่ม + เรียงกลุ่มให้หน้าที่มีภาพตรงที่สุดอยู่บนสุด
+    const groups = [...byPage.entries()].map(([page, items]) => {
+      items.sort((a, b) => better(a, b) ? -1 : 1);
+      return { page, items };
+    });
+    groups.sort((g1, g2) => better(g1.items[0], g2.items[0]) ? -1 : 1);
+
+    return `<div class="match-groups" style="margin-top:22px">` + groups.map(g => {
+      const head = g.page
+        ? `<div class="gp-url">
+            <a class="gp-url-item" href="${esc(g.page)}" target="_blank" title="${esc(g.page)}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
+              <span>${esc(g.page)}</span>
+            </a>
+           </div>`
+        : `<span class="gp-url gp-unknown">ไม่ทราบหน้าต้นทาง</span>`;
+      const check = g.page
+        ? `<label class="gp-pick" title="เลือก URL นี้">
+             <input type="checkbox" class="gp-check" data-url="${esc(g.page)}">
+           </label>`
+        : '';
+      return `<section class="match-group">
+        <div class="match-group-head">
+          ${head}
+          <span class="gp-count">${g.items.length} ภาพ</span>
+          ${check}
+        </div>
+        ${matchGridHtml(g.items, isSim, true)}
+      </section>`;
+    }).join('') + `</div>`;
   }
 
   // thumbnail ภาพ query ทั้งหมด (ใช้ใน summary bar)
@@ -844,7 +1028,7 @@
     html += failedPagesHtml(failedErrors);
 
     if (merged.length) {
-      html += matchGridHtml(merged, isSim);
+      html += matchGroupsHtml(merged, isSim);
     } else {
       html += `<div class="empty" style="margin-top:18px">ยังไม่พบภาพที่ตรงกันก่อนการเชื่อมต่อหลุด</div>`;
     }
@@ -861,6 +1045,7 @@
       });
     }
     bindFailedActions(failedErrors.map(e => e.page));
+    syncSelection();
     root.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -892,12 +1077,13 @@
 
     // ผลลัพธ์รวมทุกภาพ query เป็น grid เดียว (เรียงจากตรงที่สุดก่อน)
     if (merged.length) {
-      html += matchGridHtml(merged, isSim);
+      html += matchGroupsHtml(merged, isSim);
     } else {
       html += `<div class="empty" style="margin-top:18px">ไม่พบผลลัพธ์ — ลองลดเกณฑ์ความเข้มงวด, ล้างช่อง CSS selector, หรือเปิด render ด้วยเบราว์เซอร์จริง</div>`;
     }
     root.innerHTML = html;
     bindFailedActions(failedErrors.map(e => e.page));
+    syncSelection();
     root.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 </script>

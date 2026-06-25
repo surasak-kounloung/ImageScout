@@ -128,6 +128,7 @@ async def search(
     # พารามิเตอร์โหมด inside (feature matching)
     ratio_test: float = Form(0.75),
     min_inliers: int = Form(10),
+    max_dim: int = Form(2400),                   # ความละเอียดสูงสุดก่อนย่อ (จับ instance เล็กในภาพใหญ่)
     # พารามิเตอร์โหมด similar (CLIP)
     similarity_threshold: float = Form(0.75),
 ):
@@ -181,7 +182,7 @@ async def search(
         return {"mode": "similar", "scanned": len(candidates), "matches": matches, **base_meta}
 
     # ----- โหมด inside (default): feature matching -----
-    params = matcher.MatchParams.clamp(ratio_test=ratio_test, min_inliers=min_inliers)
+    params = matcher.MatchParams.clamp(ratio_test=ratio_test, min_inliers=min_inliers, max_dim=max_dim)
     query_feat = matcher.compute_features(query_bytes, params.max_dim)
     if query_feat is None or query_feat[2] is None:
         return JSONResponse(
@@ -241,7 +242,7 @@ def _dedup_grouped(matches: list[dict], hashes: dict, sort_key) -> list[dict]:
 
 
 async def _search_events(query_items, pages, mode, render_js, ratio_test, min_inliers,
-                         similarity_threshold, scope_selector=None):
+                         similarity_threshold, scope_selector=None, max_dim=2400):
     """async generator: yield NDJSON events รายงานความคืบหน้าทีละขั้น
 
     query_items: list ของ (ชื่อไฟล์, bytes) ของภาพ query (สูงสุด 12 ภาพ)
@@ -369,7 +370,7 @@ async def _search_events(query_items, pages, mode, render_js, ratio_test, min_in
         return
 
     # ===== โหมด inside =====
-    params = matcher.MatchParams.clamp(ratio_test=ratio_test, min_inliers=min_inliers)
+    params = matcher.MatchParams.clamp(ratio_test=ratio_test, min_inliers=min_inliers, max_dim=max_dim)
     query_feats = []  # (query_index, query_name, features)
     for qi, (qname, qbytes) in enumerate(query_items):
         feat = matcher.compute_features(qbytes, params.max_dim)
@@ -449,6 +450,7 @@ async def search_stream(
     scope_selector: str = Form(""),              # CSS selector จำกัดขอบเขต เช่น ".site-main"
     ratio_test: float = Form(0.75),
     min_inliers: int = Form(10),
+    max_dim: int = Form(2400),                   # ความละเอียดสูงสุดก่อนย่อ (จับ instance เล็กในภาพใหญ่)
     similarity_threshold: float = Form(0.75),
 ):
     if len(images) > MAX_QUERY_IMAGES:
@@ -468,7 +470,7 @@ async def search_stream(
         return JSONResponse({"error": "กรุณาใส่ URL อย่างน้อย 1 รายการ"}, status_code=400)
 
     gen = _search_events(query_items, pages, mode, render_js, ratio_test, min_inliers,
-                         similarity_threshold, scope_selector)
+                         similarity_threshold, scope_selector, max_dim)
     return StreamingResponse(gen, media_type="application/x-ndjson")
 
 
